@@ -1,7 +1,7 @@
 package jackolauncher.item;
 
 import jackolauncher.JackOLauncher;
-import jackolauncher.entity.JackOProjectileEntity;
+//import jackolauncher.entity.JackOProjectileEntity;
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -60,9 +60,9 @@ public class JackOLauncherItem extends Item {
 
                 player.getCooldownTracker().setCooldown(this, 40 - 6 * reloadingLevel);
 
-                JackOProjectileEntity projectile = new JackOProjectileEntity(world, player, JackOAmmoHelper.getAmmoProperties(stack).copy(), blastShieldLevel > 0);
-                projectile.shoot(player, player.rotationPitch, player.rotationYaw, 1.3F + 0.13F * launchingLevel, 3 - 2.5F * launchingLevel / JackOLauncher.LAUNCHING.getMaxLevel());
-                world.addEntity(projectile);
+                //JackOProjectileEntity projectile = new JackOProjectileEntity(world, player, JackOAmmoHelper.getAmmoProperties(stack).copy(), blastShieldLevel > 0);
+                //projectile.shoot(player, player.rotationPitch, player.rotationYaw, 1.3F + 0.13F * launchingLevel, 3 - 2.5F * launchingLevel / JackOLauncher.LAUNCHING.getMaxLevel());
+                //world.addEntity(projectile);
 
                 if (!player.abilities.isCreativeMode && random.nextInt(unwastingLevel + 1) == 0) {
                     stack.shrink(1);

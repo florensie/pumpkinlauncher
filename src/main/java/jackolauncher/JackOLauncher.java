@@ -4,9 +4,9 @@ import jackolauncher.enchantment.BlastShieldEnchantment;
 import jackolauncher.enchantment.LaunchingEnchantment;
 import jackolauncher.enchantment.ReloadingEnchantment;
 import jackolauncher.enchantment.UnwastingEnchantment;
-import jackolauncher.entity.JackOProjectileEntity;
-import jackolauncher.entity.JackOProjectileRenderer;
-import jackolauncher.item.JackOAmmoDispenseBehavior;
+//import jackolauncher.entity.JackOProjectileEntity;
+//import jackolauncher.entity.JackOProjectileRenderer;
+//import jackolauncher.item.JackOAmmoDispenseBehavior;
 import jackolauncher.item.JackOAmmoItem;
 import jackolauncher.item.JackOAmmoRecipe;
 import jackolauncher.item.JackOLauncherItem;
@@ -39,10 +39,11 @@ public class JackOLauncher {
     public static final Item JACK_O_LAUNCHER = new JackOLauncherItem();
     public static final Item JACK_O_AMMO = new JackOAmmoItem();
 
-    public static final EntityType<JackOProjectileEntity> JACK_O_PROJECTILE_ENTITY_TYPE = createEntity();
+    //public static final EntityType<JackOProjectileEntity> JACK_O_PROJECTILE_ENTITY_TYPE = createEntity();
 
     public static final SpecialRecipeSerializer<JackOAmmoRecipe> JACK_O_AMMO_RECIPE_SERIALIZER = new SpecialRecipeSerializer<>(JackOAmmoRecipe::new);
 
+    /*
     private static EntityType<JackOProjectileEntity> createEntity() {
         EntityType.Builder<JackOProjectileEntity> builder = EntityType.Builder.create(JackOProjectileEntity::new, EntityClassification.MISC);
         builder.size(0.8F, 0.8F);
@@ -52,6 +53,7 @@ public class JackOLauncher {
         entityType.setRegistryName(new ResourceLocation(MODID, "jack_o_projectile"));
         return entityType;
     }
+     */
 
     public static final Enchantment UNWASTING = new UnwastingEnchantment();
     public static final Enchantment RELOADING = new ReloadingEnchantment();
@@ -60,14 +62,16 @@ public class JackOLauncher {
 
     @SubscribeEvent
     public static void commonSetup(FMLCommonSetupEvent event) {
-        DispenserBlock.registerDispenseBehavior(JackOLauncher.JACK_O_AMMO, new JackOAmmoDispenseBehavior());
+        //DispenserBlock.registerDispenseBehavior(JackOLauncher.JACK_O_AMMO, new JackOAmmoDispenseBehavior());
         LootFunctionManager.registerFunction(new SetRandomJackOAmmoNBT.Serializer());
     }
 
+    /*
     @SubscribeEvent
     public static void registerEntity(RegistryEvent.Register<EntityType<?>> event) {
         event.getRegistry().register(JACK_O_PROJECTILE_ENTITY_TYPE);
     }
+     */
 
     @SubscribeEvent
     public static void registerItems(RegistryEvent.Register<Item> event) {
@@ -85,8 +89,10 @@ public class JackOLauncher {
         event.getRegistry().register(JACK_O_AMMO_RECIPE_SERIALIZER);
     }
 
+    /*
     @SubscribeEvent
     public static void registerEntityRenderer(ModelRegistryEvent event) {
         RenderingRegistry.registerEntityRenderingHandler(JackOProjectileEntity.class, JackOProjectileRenderer::new);
     }
+     */
 }

@@ -25,6 +25,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 @MethodsReturnNonnullByDefault
 public class JackOAmmoRecipe extends SpecialRecipe {
 
+    /*
     public static final Ingredient INGREDIENT_WOOL = Ingredient.fromTag(ItemTags.WOOL);
 
     public static final Ingredient INGREDIENT_NUGGETS_IRON = Ingredient.fromTag(Tags.Items.NUGGETS_IRON);
@@ -33,6 +34,7 @@ public class JackOAmmoRecipe extends SpecialRecipe {
     public static final Ingredient INGREDIENT_SLIMEBALLS = Ingredient.fromTag(Tags.Items.SLIMEBALLS);
     public static final Ingredient INGREDIENT_NUGGETS_GOLD = Ingredient.fromTag(Tags.Items.NUGGETS_GOLD);
     public static final Ingredient INGREDIENT_FEATHERS = Ingredient.fromTag(Tags.Items.FEATHERS);
+     */
 
     public static final Ingredient INGREDIENT_BONE_BLOCK = Ingredient.fromItems(Blocks.BONE_BLOCK);
     public static final Ingredient INGREDIENT_FIRE_CHARGE = Ingredient.fromItems(Items.FIRE_CHARGE);
@@ -60,10 +62,11 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                     JackOAmmoHelper.setBlockState(result, Block.getBlockFromItem(inputStack.getItem()).getDefaultState());
                 } else if (INGREDIENT_BONE_BLOCK.test(inputStack)) {
                     JackOAmmoHelper.setBoneMeal(result);
-                } else if (INGREDIENT_ENDER_PEARLS.test(inputStack)) {
-                    JackOAmmoHelper.setEnderPearl(result);
+                //} else if (INGREDIENT_ENDER_PEARLS.test(inputStack)) {
+                //    JackOAmmoHelper.setEnderPearl(result);
                 } else if (INGREDIENT_FIRE_CHARGE.test(inputStack)) {
                     JackOAmmoHelper.setFlaming(result);
+                /*
                 } else if (INGREDIENT_WOOL.test(inputStack)) {
                     JackOAmmoHelper.setShouldDamageTerrain(result, false);
                 } else if (INGREDIENT_FEATHERS.test(inputStack)) {
@@ -76,6 +79,7 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                     ++extraDamage;
                 } else if (INGREDIENT_NUGGETS_GOLD.test(inputStack)) {
                     ++fortuneLevel;
+                */
                 } else if (INGREDIENT_POTION.test(inputStack)) {
                     JackOAmmoHelper.setPotion(result, inputStack);
                 } else if (INGREDIENT_FIREWORK_ROCKET.test(inputStack)) {
@@ -146,16 +150,20 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                     return false;
                 }
                 fireChargeFlag = true;
+            /*
             } else if (INGREDIENT_ENDER_PEARLS.test(stackInSlot)) {
                 if (enderPearlFlag) {
                     return false;
                 }
                 enderPearlFlag = true;
+
+             */
             } else if (INGREDIENT_FIREWORK_ROCKET.test(stackInSlot)) {
                 if (fireworkRocketFlag) {
                     return false;
                 }
                 fireworkRocketFlag = true;
+            /*
             } else if (INGREDIENT_WOOL.test(stackInSlot)) {
                 if (woolFlag) {
                     return false;
@@ -178,6 +186,8 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                 if (++goldNuggetAmount > 3) {
                     return false;
                 }
+
+             */
             } else if (stackInSlot.getItem() instanceof ArrowItem) {
                 if (arrowsStack.isEmpty() || arrowsStack.getCount() >= 16) {
                     arrowsStack = stackInSlot.copy();
@@ -190,10 +200,13 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                     }
                     arrowsStack.grow(1);
                 }
+            /*
             } else if (INGREDIENT_SLIMEBALLS.test(stackInSlot)) {
                 if (++slimeBallAmount > 1) {
                     return false;
                 }
+
+             */
             } else if (!stackInSlot.isEmpty()) {
                 return false;
             }

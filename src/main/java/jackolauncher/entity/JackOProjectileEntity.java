@@ -41,7 +41,7 @@ import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
+/*
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class JackOProjectileEntity extends Entity implements IProjectile {
@@ -639,3 +639,4 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
         }
     }
 }
+ */

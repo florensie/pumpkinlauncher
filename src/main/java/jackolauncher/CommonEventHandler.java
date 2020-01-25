@@ -12,6 +12,7 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = JackOLauncher.MODID)
 public class CommonEventHandler {
 
+    /*
     @SubscribeEvent
     public static void addItemsToLootTable(LootTableLoadEvent event) {
         if (event.getName().equals(new ResourceLocation("minecraft:chests/simple_dungeon"))
@@ -26,4 +27,5 @@ public class CommonEventHandler {
             event.getTable().addPool(pool);
         }
     }
+     */
 }

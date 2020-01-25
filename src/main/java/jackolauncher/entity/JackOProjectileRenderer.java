@@ -12,6 +12,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+/*
 @OnlyIn(Dist.CLIENT)
 public class JackOProjectileRenderer extends EntityRenderer<JackOProjectileEntity> {
 
@@ -45,3 +46,4 @@ public class JackOProjectileRenderer extends EntityRenderer<JackOProjectileEntit
         return AtlasTexture.LOCATION_BLOCKS_TEXTURE;
     }
 }
+ */

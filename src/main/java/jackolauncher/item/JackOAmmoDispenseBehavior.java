@@ -1,6 +1,6 @@
 package jackolauncher.item;
 
-import jackolauncher.entity.JackOProjectileEntity;
+//import jackolauncher.entity.JackOProjectileEntity;
 import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.DispenserBlock;
 import net.minecraft.dispenser.IBlockSource;
@@ -15,6 +15,7 @@ import net.minecraft.world.World;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
+/*
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
 public class JackOAmmoDispenseBehavior extends ProjectileDispenseBehavior {
@@ -41,3 +42,4 @@ public class JackOAmmoDispenseBehavior extends ProjectileDispenseBehavior {
         return 1.3F;
     }
 }
+*/
