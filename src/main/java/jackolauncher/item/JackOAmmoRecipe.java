@@ -1,50 +1,43 @@
 package jackolauncher.item;
 
 import jackolauncher.JackOLauncher;
-import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.CarvedPumpkinBlock;
-import net.minecraft.block.StemGrownBlock;
+import net.minecraft.block.GourdBlock;
 import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ArrowItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.item.crafting.IRecipeSerializer;
-import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.item.crafting.SpecialRecipe;
-import net.minecraft.tags.ItemTags;
-import net.minecraft.util.ResourceLocation;
+import net.minecraft.recipe.Ingredient;
+import net.minecraft.recipe.RecipeSerializer;
+import net.minecraft.recipe.SpecialCraftingRecipe;
+import net.minecraft.tag.ItemTags;
+import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
-import net.minecraftforge.common.Tags;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@SuppressWarnings("ConstantConditions")
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
-public class JackOAmmoRecipe extends SpecialRecipe {
+public class JackOAmmoRecipe extends SpecialCraftingRecipe {
 
     public static final Ingredient INGREDIENT_WOOL = Ingredient.fromTag(ItemTags.WOOL);
 
-    public static final Ingredient INGREDIENT_NUGGETS_IRON = Ingredient.fromTag(Tags.Items.NUGGETS_IRON);
-    public static final Ingredient INGREDIENT_GUNPOWDER = Ingredient.fromTag(Tags.Items.GUNPOWDER);
-    public static final Ingredient INGREDIENT_ENDER_PEARLS = Ingredient.fromTag(Tags.Items.ENDER_PEARLS);
-    public static final Ingredient INGREDIENT_SLIMEBALLS = Ingredient.fromTag(Tags.Items.SLIMEBALLS);
-    public static final Ingredient INGREDIENT_NUGGETS_GOLD = Ingredient.fromTag(Tags.Items.NUGGETS_GOLD);
-    public static final Ingredient INGREDIENT_FEATHERS = Ingredient.fromTag(Tags.Items.FEATHERS);
+    public static final Ingredient INGREDIENT_NUGGETS_IRON = Ingredient.ofItems(Items.IRON_NUGGET);
+    public static final Ingredient INGREDIENT_GUNPOWDER = Ingredient.ofItems(Items.GUNPOWDER);
+    public static final Ingredient INGREDIENT_ENDER_PEARLS = Ingredient.ofItems(Items.ENDER_PEARL);
+    public static final Ingredient INGREDIENT_SLIMEBALLS = Ingredient.ofItems(Items.SLIME_BALL);
+    public static final Ingredient INGREDIENT_NUGGETS_GOLD = Ingredient.ofItems(Items.GOLD_NUGGET);
+    public static final Ingredient INGREDIENT_FEATHERS = Ingredient.ofItems(Items.FEATHER);
 
-    public static final Ingredient INGREDIENT_BONE_BLOCK = Ingredient.fromItems(Blocks.BONE_BLOCK);
-    public static final Ingredient INGREDIENT_FIRE_CHARGE = Ingredient.fromItems(Items.FIRE_CHARGE);
-    public static final Ingredient INGREDIENT_FIREWORK_ROCKET = Ingredient.fromItems(Items.FIREWORK_ROCKET);
-    public static final Ingredient INGREDIENT_POTION = Ingredient.fromItems(Items.SPLASH_POTION, Items.LINGERING_POTION);
+    public static final Ingredient INGREDIENT_BONE_BLOCK = Ingredient.ofItems(Blocks.BONE_BLOCK);
+    public static final Ingredient INGREDIENT_FIRE_CHARGE = Ingredient.ofItems(Items.FIRE_CHARGE);
+    public static final Ingredient INGREDIENT_FIREWORK_ROCKET = Ingredient.ofItems(Items.FIREWORK_ROCKET);
+    public static final Ingredient INGREDIENT_POTION = Ingredient.ofItems(Items.SPLASH_POTION, Items.LINGERING_POTION);
 
 
-    public JackOAmmoRecipe(ResourceLocation resourceLocation) {
+    public JackOAmmoRecipe(Identifier resourceLocation) {
         super(resourceLocation);
     }
 
-    public static ItemStack getCraftingResult(ItemStack... inputs) {
+    public static ItemStack craft(ItemStack... inputs) {
         ItemStack result = new ItemStack(JackOLauncher.JACK_O_AMMO, 3);
 
         int explosionPower = 0;
@@ -56,7 +49,7 @@ public class JackOAmmoRecipe extends SpecialRecipe {
 
         for (ItemStack inputStack : inputs) {
             if (!inputStack.isEmpty()) {
-                if (Block.getBlockFromItem(inputStack.getItem()) instanceof StemGrownBlock || Block.getBlockFromItem(inputStack.getItem()) instanceof CarvedPumpkinBlock) {
+                if (Block.getBlockFromItem(inputStack.getItem()) instanceof GourdBlock || Block.getBlockFromItem(inputStack.getItem()) instanceof CarvedPumpkinBlock) {
                     JackOAmmoHelper.setBlockState(result, Block.getBlockFromItem(inputStack.getItem()).getDefaultState());
                 } else if (INGREDIENT_BONE_BLOCK.test(inputStack)) {
                     JackOAmmoHelper.setBoneMeal(result);
@@ -85,7 +78,7 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                         arrowsStack = inputStack.copy();
                         arrowsStack.setCount(1);
                     } else {
-                        arrowsStack.grow(1);
+                        arrowsStack.increment(1);
                     }
                 }
             }
@@ -123,10 +116,10 @@ public class JackOAmmoRecipe extends SpecialRecipe {
 
         ItemStack arrowsStack = ItemStack.EMPTY;
 
-        for (int slotId = 0; slotId < inventory.getSizeInventory(); ++slotId) {
-            ItemStack stackInSlot = inventory.getStackInSlot(slotId);
+        for (int slotId = 0; slotId < inventory.getInvSize(); ++slotId) {
+            ItemStack stackInSlot = inventory.getInvStack(slotId);
 
-            if (Block.getBlockFromItem(stackInSlot.getItem()) instanceof StemGrownBlock || Block.getBlockFromItem(stackInSlot.getItem()) instanceof CarvedPumpkinBlock) {
+            if (Block.getBlockFromItem(stackInSlot.getItem()) instanceof GourdBlock || Block.getBlockFromItem(stackInSlot.getItem()) instanceof CarvedPumpkinBlock) {
                 if (pumpkinFlag) {
                     return false;
                 }
@@ -185,10 +178,10 @@ public class JackOAmmoRecipe extends SpecialRecipe {
                 } else {
                     ItemStack stackInSlotCopy = stackInSlot.copy();
                     stackInSlotCopy.setCount(arrowsStack.getCount());
-                    if (!ItemStack.areItemStacksEqual(arrowsStack, stackInSlotCopy)) {
+                    if (!ItemStack.areEqualIgnoreDamage(arrowsStack, stackInSlotCopy)) {
                         return false;
                     }
-                    arrowsStack.grow(1);
+                    arrowsStack.increment(1);
                 }
             } else if (INGREDIENT_SLIMEBALLS.test(stackInSlot)) {
                 if (++slimeBallAmount > 1) {
@@ -213,26 +206,26 @@ public class JackOAmmoRecipe extends SpecialRecipe {
     }
 
     @Override
-    public ItemStack getCraftingResult(CraftingInventory inventory) {
-        ItemStack[] inputs = new ItemStack[inventory.getSizeInventory()];
-        for (int slotId = 0; slotId < inventory.getSizeInventory(); ++slotId) {
-            inputs[slotId] = inventory.getStackInSlot(slotId);
+    public ItemStack craft(CraftingInventory inventory) {
+        ItemStack[] inputs = new ItemStack[inventory.getInvSize()];
+        for (int slotId = 0; slotId < inventory.getInvSize(); ++slotId) {
+            inputs[slotId] = inventory.getInvStack(slotId);
         }
-        return getCraftingResult(inputs);
+        return craft(inputs);
     }
 
     @Override
-    public boolean canFit(int width, int height) {
+    public boolean fits(int width, int height) {
         return width * height > 2;
     }
 
     @Override
-    public ItemStack getRecipeOutput() {
+    public ItemStack getOutput() {
         return ItemStack.EMPTY;
     }
 
     @Override
-    public IRecipeSerializer<?> getSerializer() {
+    public RecipeSerializer<?> getSerializer() {
         return JackOLauncher.JACK_O_AMMO_RECIPE_SERIALIZER;
     }
 }

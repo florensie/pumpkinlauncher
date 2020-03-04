@@ -1,65 +1,67 @@
 package jackolauncher.entity;
 
 import jackolauncher.JackOLauncher;
-import mcp.MethodsReturnNonnullByDefault;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.entity.*;
-import net.minecraft.entity.monster.BlazeEntity;
-import net.minecraft.entity.monster.EndermanEntity;
-import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.entity.projectile.AbstractArrowEntity;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.ProjectileDamageSource;
+import net.minecraft.entity.data.DataTracker;
+import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.mob.BlazeEntity;
+import net.minecraft.entity.mob.EndermanEntity;
 import net.minecraft.entity.projectile.ArrowEntity;
-import net.minecraft.entity.projectile.PotionEntity;
-import net.minecraft.entity.projectile.ProjectileHelper;
+import net.minecraft.entity.projectile.Projectile;
+import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.entity.thrown.ThrownPotionEntity;
 import net.minecraft.item.ArrowItem;
 import net.minecraft.item.BoneMealItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.NBTUtil;
-import net.minecraft.network.IPacket;
-import net.minecraft.network.datasync.DataParameter;
-import net.minecraft.network.datasync.DataSerializers;
-import net.minecraft.network.datasync.EntityDataManager;
-import net.minecraft.particles.BlockParticleData;
-import net.minecraft.particles.IParticleData;
-import net.minecraft.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtHelper;
+import net.minecraft.network.Packet;
+import net.minecraft.particle.BlockStateParticleEffect;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.potion.*;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.*;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.*;
+import net.minecraft.world.RayTraceContext;
 import net.minecraft.world.World;
-import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.common.util.FakePlayerFactory;
-import net.minecraftforge.fml.network.NetworkHooks;
 
-import javax.annotation.Nullable;
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
-public class JackOProjectileEntity extends Entity implements IProjectile {
+public class JackOProjectileEntity extends Entity implements Projectile {
 
-    private static final DataParameter<Integer> BOUNCES_LEFT = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.VARINT);
-    private static final DataParameter<Boolean> IS_FLAMING = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.BOOLEAN);
-    private static final DataParameter<Boolean> IS_SMOKING = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.BOOLEAN);
-    private static final DataParameter<Boolean> IS_ENDER_PEARL = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.BOOLEAN);
-    private static final DataParameter<Boolean> IS_BONE_MEAL = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.BOOLEAN);
-    private static final DataParameter<CompoundNBT> FIREWORKS = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.COMPOUND_NBT);
-    private static final DataParameter<ItemStack> POTION_STACK = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.ITEMSTACK);
-    private static final DataParameter<Optional<BlockState>> BLOCKSTATE = EntityDataManager.createKey(JackOProjectileEntity.class, DataSerializers.OPTIONAL_BLOCK_STATE);
+    private static final TrackedData<Integer> BOUNCES_LEFT = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.INTEGER);
+    private static final TrackedData<Boolean> IS_FLAMING = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> IS_SMOKING = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> IS_ENDER_PEARL = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<Boolean> IS_BONE_MEAL = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<CompoundTag> FIREWORKS = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.TAG_COMPOUND);
+    private static final TrackedData<ItemStack> POTION_STACK = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.ITEM_STACK);
+    private static final TrackedData<Optional<BlockState>> BLOCKSTATE = DataTracker.registerData(JackOProjectileEntity.class, TrackedDataHandlerRegistry.OPTIONAL_BLOCK_STATE);
 
     protected int ticksInAir;
     protected boolean shouldDamageShooter;
     private int ticksInAirMax;
     protected int randomRotationOffset;
-    @Nullable
     private UUID shootingEntity;
     private int explosionPower = 2;
     private int extraDamage;
@@ -70,48 +72,48 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
 
     public JackOProjectileEntity(EntityType<?> entityType, World world) {
         super(entityType, world);
-        randomRotationOffset = rand.nextInt(1000);
+        randomRotationOffset = random.nextInt(1000);
     }
 
     public JackOProjectileEntity(World world) {
         this(JackOLauncher.JACK_O_PROJECTILE_ENTITY_TYPE, world);
     }
 
-    public JackOProjectileEntity(World world, double x, double y, double z, CompoundNBT ammoProperties) {
+    public JackOProjectileEntity(World world, double x, double y, double z, CompoundTag ammoProperties) {
         this(world);
-        setPosition(x, y, z);
-        readAdditional(ammoProperties);
+        updatePosition(x, y, z);
+        readCustomDataFromTag(ammoProperties);
     }
 
-    public JackOProjectileEntity(World world, LivingEntity shootingEntity, CompoundNBT ammoProperties, boolean shouldDamageShooter) {
-        this(world, shootingEntity.posX, shootingEntity.posY + shootingEntity.getEyeHeight() - 0.8 / 2, shootingEntity.posZ, ammoProperties);
-        this.shootingEntity = shootingEntity.getUniqueID();
+    public JackOProjectileEntity(World world, LivingEntity shootingEntity, CompoundTag ammoProperties, boolean shouldDamageShooter) {
+        this(world, shootingEntity.x, shootingEntity.y + shootingEntity.getStandingEyeHeight() - 0.8 / 2, shootingEntity.z, ammoProperties);
+        this.shootingEntity = shootingEntity.getUuid();
         this.shouldDamageShooter = shouldDamageShooter;
     }
 
     public BlockState getBlockState() {
-        return dataManager.get(BLOCKSTATE).orElse(Blocks.JACK_O_LANTERN.getDefaultState());
+        return dataTracker.get(BLOCKSTATE).orElse(Blocks.JACK_O_LANTERN.getDefaultState());
     }
 
     @Override
-    protected void registerData() {
-        dataManager.register(BOUNCES_LEFT, 0);
-        dataManager.register(IS_FLAMING, false);
-        dataManager.register(IS_SMOKING, false);
-        dataManager.register(IS_BONE_MEAL, false);
-        dataManager.register(FIREWORKS, new CompoundNBT());
-        dataManager.register(POTION_STACK, ItemStack.EMPTY);
-        dataManager.register(IS_ENDER_PEARL, false);
-        dataManager.register(BLOCKSTATE, Optional.empty());
+    protected void initDataTracker() {
+        dataTracker.startTracking(BOUNCES_LEFT, 0);
+        dataTracker.startTracking(IS_FLAMING, false);
+        dataTracker.startTracking(IS_SMOKING, false);
+        dataTracker.startTracking(IS_BONE_MEAL, false);
+        dataTracker.startTracking(FIREWORKS, new CompoundTag());
+        dataTracker.startTracking(POTION_STACK, ItemStack.EMPTY);
+        dataTracker.startTracking(IS_ENDER_PEARL, false);
+        dataTracker.startTracking(BLOCKSTATE, Optional.empty());
     }
 
     @Override
-    public IPacket<?> createSpawnPacket() {
+    public Packet<?> createSpawnPacket() {
         return NetworkHooks.getEntitySpawningPacket(this);
     }
 
     @Override
-    protected void readAdditional(CompoundNBT compound) {
+    protected void readCustomDataFromTag(CompoundTag compound) {
         ticksInAir = compound.getInt("TicksInAir");
         extraDamage = compound.getByte("ExtraDamage");
         fortuneLevel = compound.getByte("FortuneLevel");
@@ -120,85 +122,84 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
         shouldDamageTerrain = !compound.contains("ShouldDamageTerrain") || compound.getBoolean("ShouldDamageTerrain");
 
 
-        if (compound.hasUniqueId("ShootingEntity")) {
-            shootingEntity = compound.getUniqueId("ShootingEntity");
+        if (compound.containsUuid("ShootingEntity")) {
+            shootingEntity = compound.getUuid("ShootingEntity");
         }
 
-        dataManager.set(IS_FLAMING, compound.getBoolean("IsFlaming"));
-        dataManager.set(IS_BONE_MEAL, compound.getBoolean("IsBoneMeal"));
-        dataManager.set(IS_ENDER_PEARL, compound.getBoolean("IsEnderPearl"));
-        dataManager.set(BOUNCES_LEFT, (int) compound.getByte("BouncesAmount"));
+        dataTracker.set(IS_FLAMING, compound.getBoolean("IsFlaming"));
+        dataTracker.set(IS_BONE_MEAL, compound.getBoolean("IsBoneMeal"));
+        dataTracker.set(IS_ENDER_PEARL, compound.getBoolean("IsEnderPearl"));
+        dataTracker.set(BOUNCES_LEFT, (int) compound.getByte("BouncesAmount"));
 
         if (compound.contains("ExplosionPower")) {
             explosionPower = compound.getByte("ExplosionPower");
         }
-        dataManager.set(IS_SMOKING, explosionPower > 0);
+        dataTracker.set(IS_SMOKING, explosionPower > 0);
 
-        CompoundNBT arrowNBT = compound.getCompound("Arrows");
+        CompoundTag arrowNBT = compound.getCompound("Arrows");
         if (!arrowNBT.isEmpty()) {
-            arrowStack = ItemStack.read(arrowNBT);
+            arrowStack = ItemStack.fromTag(arrowNBT);
         }
-        CompoundNBT potionNBT = compound.getCompound("Potion");
+        CompoundTag potionNBT = compound.getCompound("Potion");
         if (!potionNBT.isEmpty()) {
-            dataManager.set(POTION_STACK, ItemStack.read(potionNBT));
+            dataTracker.set(POTION_STACK, ItemStack.fromTag(potionNBT));
         }
-        BlockState blockState = NBTUtil.readBlockState(compound.getCompound("BlockState"));
+        BlockState blockState = NbtHelper.toBlockState(compound.getCompound("BlockState"));
         if (!(blockState == Blocks.AIR.getDefaultState())) {
-            dataManager.set(BLOCKSTATE, Optional.of(blockState));
+            dataTracker.set(BLOCKSTATE, Optional.of(blockState));
         }
-        CompoundNBT fireworksNBT = compound.getCompound("Fireworks");
+        CompoundTag fireworksNBT = compound.getCompound("Fireworks");
         if (!fireworksNBT.isEmpty()) {
-            ticksInAirMax = 6 * (fireworksNBT.getByte("Flight") + 1) + rand.nextInt(5);
-            dataManager.set(FIREWORKS, fireworksNBT);
+            ticksInAirMax = 6 * (fireworksNBT.getByte("Flight") + 1) + random.nextInt(5);
+            dataTracker.set(FIREWORKS, fireworksNBT);
         }
     }
 
     @Override
-    protected void writeAdditional(CompoundNBT compound) {
+    protected void writeCustomDataToTag(CompoundTag compound) {
         compound.putInt("TicksInAir", ticksInAir);
         compound.putByte("FortuneLevel", (byte) fortuneLevel);
         compound.putByte("ExtraDamage", (byte) extraDamage);
         compound.putByte("ExplosionPower", (byte) explosionPower);
-        compound.putByte("BouncesLeft", dataManager.get(BOUNCES_LEFT).byteValue());
+        compound.putByte("BouncesLeft", dataTracker.get(BOUNCES_LEFT).byteValue());
         compound.putBoolean("HasSilkTouch", hasSilkTouch);
         compound.putBoolean("ShouldDamageTerrain", shouldDamageTerrain);
-        compound.putBoolean("IsFiery", dataManager.get(IS_FLAMING));
-        compound.putBoolean("IsEnderPearl", dataManager.get(IS_ENDER_PEARL));
-        compound.putBoolean("IsBoneMeal", dataManager.get(IS_BONE_MEAL));
+        compound.putBoolean("IsFiery", dataTracker.get(IS_FLAMING));
+        compound.putBoolean("IsEnderPearl", dataTracker.get(IS_ENDER_PEARL));
+        compound.putBoolean("IsBoneMeal", dataTracker.get(IS_BONE_MEAL));
         compound.putBoolean("ShouldDamageShooter", shouldDamageShooter);
-        compound.put("Fireworks", dataManager.get(FIREWORKS));
-        compound.put("Arrows", arrowStack.write(new CompoundNBT()));
-        compound.put("Potion", dataManager.get(POTION_STACK).write(new CompoundNBT()));
-        compound.put("BlockState", NBTUtil.writeBlockState(dataManager.get(BLOCKSTATE).orElse(Blocks.AIR.getDefaultState())));
+        compound.put("Fireworks", dataTracker.get(FIREWORKS));
+        compound.put("Arrows", arrowStack.toTag(new CompoundTag()));
+        compound.put("Potion", dataTracker.get(POTION_STACK).toTag(new CompoundTag()));
+        compound.put("BlockState", NbtHelper.fromBlockState(dataTracker.get(BLOCKSTATE).orElse(Blocks.AIR.getDefaultState())));
         if (shootingEntity != null) {
-            compound.putUniqueId("ShootingEntity", shootingEntity);
+            compound.putUuid("ShootingEntity", shootingEntity);
         }
     }
 
-    @Nullable
     public LivingEntity getShootingEntity() {
         if (shootingEntity == null || !(world instanceof ServerWorld)) {
             return null;
         }
-        Entity shootingEntity = ((ServerWorld) world).getEntityByUuid(this.shootingEntity);
+        Entity shootingEntity = ((ServerWorld) world).getEntity(this.shootingEntity);
         return shootingEntity instanceof LivingEntity ? (LivingEntity) shootingEntity : null;
     }
 
     @Override
-    public void shoot(double x, double y, double z, float velocity, float inaccuracy) {
+    public void setVelocity(double x, double y, double z, float velocity, float inaccuracy) {
         float f = MathHelper.sqrt(x * x + y * y + z * z);
-        double motionX = x * velocity / f + rand.nextGaussian() * 0.0075 * inaccuracy;
-        double motionY = y * velocity / f + rand.nextGaussian() * 0.0075 * inaccuracy;
-        double motionZ = z * velocity / f + rand.nextGaussian() * 0.0075 * inaccuracy;
-        setMotion(motionX, motionY, motionZ);
+        double motionX = x * velocity / f + random.nextGaussian() * 0.0075 * inaccuracy;
+        double motionY = y * velocity / f + random.nextGaussian() * 0.0075 * inaccuracy;
+        double motionZ = z * velocity / f + random.nextGaussian() * 0.0075 * inaccuracy;
+        setVelocity(motionX, motionY, motionZ);
     }
 
-    public void shoot(Entity shooter, float pitch, float yaw, float velocity, float inaccuracy) {
+    public void setVelocity(Entity shooter, float pitch, float yaw, float velocity, float inaccuracy) {
         float x = -MathHelper.sin(yaw * 0.017453292F) * MathHelper.cos(pitch * 0.017453292F);
         float y = -MathHelper.sin(pitch * 0.017453292F);
         float z = MathHelper.cos(yaw * 0.017453292F) * MathHelper.cos(pitch * 0.017453292F);
-        shoot(x, y, z, velocity, inaccuracy);
-        setMotion(getMotion().add(shooter.getMotion()));
+        setVelocity(x, y, z, velocity, inaccuracy);
+        setVelocity(getVelocity().add(shooter.getVelocity()));
     }
 
     @Override
@@ -206,13 +207,13 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
         super.tick();
         LivingEntity shootingEntity = getShootingEntity();
 
-        if (shootingEntity != null && !shootingEntity.isAlive() && dataManager.get(IS_ENDER_PEARL)) {
-            dataManager.set(IS_ENDER_PEARL, false);
+        if (shootingEntity != null && !shootingEntity.isAlive() && dataTracker.get(IS_ENDER_PEARL)) {
+            dataTracker.set(IS_ENDER_PEARL, false);
         }
 
-        if (!world.isRemote && !dataManager.get(FIREWORKS).isEmpty()) {
+        if (!world.isClient && !dataTracker.get(FIREWORKS).isEmpty()) {
             if (ticksInAir == 0) {
-                world.playSound(null, posX, posY, posZ, SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH, SoundCategory.NEUTRAL, 2, 1);
+                world.playSound(null, x, y, z, SoundEvents.ENTITY_FIREWORK_ROCKET_LAUNCH, SoundCategory.NEUTRAL, 2, 1);
             }
             if (ticksInAir > ticksInAirMax) {
                 detonate(null);
@@ -222,91 +223,91 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
         ++ticksInAir;
         spawnParticles();
 
-        RayTraceResult rayTraceResult = ProjectileHelper.func_221266_a(this, true, ticksInAir >= 5, shootingEntity, RayTraceContext.BlockMode.COLLIDER);
+        HitResult rayTraceResult = ProjectileUtil.getCollision(this, true, ticksInAir >= 5, shootingEntity, RayTraceContext.ShapeType.COLLIDER);
         //noinspection ConstantConditions
-        if (rayTraceResult.getType() != RayTraceResult.Type.MISS && !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, rayTraceResult)) {
+        if (rayTraceResult.getType() != HitResult.Type.MISS && !net.minecraftforge.event.ForgeEventFactory.onProjectileImpact(this, rayTraceResult)) {
             onImpact(rayTraceResult);
         }
 
-        Vec3d motion = getMotion();
-        if (dataManager.get(FIREWORKS).isEmpty()) {
+        Vec3d motion = getVelocity();
+        if (dataTracker.get(FIREWORKS).isEmpty()) {
             motion = motion.subtract(0, 0.08, 0);
-            if (isInWater()) {
-                motion = motion.scale(0.9);
+            if (isTouchingWater()) {
+                motion = motion.multiply(0.9);
             }
         }
-        setMotion(motion);
+        setVelocity(motion);
 
-        posX += motion.x;
-        posY += motion.y;
-        posZ += motion.z;
+        x += motion.x;
+        y += motion.y;
+        z += motion.z;
 
-        setPosition(posX, posY, posZ);
+        updatePosition(x, y, z);
 
-        doBlockCollisions();
+        checkBlockCollision();
     }
 
-    private void onImpact(RayTraceResult rayTraceResult) {
-        if (!world.isRemote) {
+    private void onImpact(HitResult rayTraceResult) {
+        if (!world.isClient) {
             LivingEntity shootingEntity = getShootingEntity();
 
-            if (rayTraceResult.getType() == RayTraceResult.Type.ENTITY && ((EntityRayTraceResult) rayTraceResult).getEntity() instanceof LivingEntity) {
-                LivingEntity entity = (LivingEntity) ((EntityRayTraceResult) rayTraceResult).getEntity();
+            if (rayTraceResult.getType() == HitResult.Type.ENTITY && ((EntityHitResult) rayTraceResult).getEntity() instanceof LivingEntity) {
+                LivingEntity entity = (LivingEntity) ((EntityHitResult) rayTraceResult).getEntity();
                 if (entity == shootingEntity && ticksInAir < 5) {
                     return;
                 }
-                entity.attackEntityFrom(new IndirectEntityDamageSource(JackOLauncher.MODID + ".jack_o_projectile_impact", this, shootingEntity), 1 + 2 * extraDamage);
+                entity.damage(new ProjectileDamageSource(JackOLauncher.MODID + ".jack_o_projectile_impact", this, shootingEntity), 1 + 2 * extraDamage);
 
-                if (dataManager.get(IS_FLAMING)) {
-                    entity.setFire(4);
+                if (dataTracker.get(IS_FLAMING)) {
+                    entity.setOnFireFor(4);
                 }
             }
-            if (rayTraceResult instanceof BlockRayTraceResult) {
-                BlockRayTraceResult blockRayTrace = (BlockRayTraceResult) rayTraceResult;
-                if (dataManager.get(IS_FLAMING) && world.isAirBlock(blockRayTrace.getPos().offset(blockRayTrace.getFace())) && net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(world, shootingEntity)) {
-                    world.setBlockState(blockRayTrace.getPos().offset(blockRayTrace.getFace()), Blocks.FIRE.getDefaultState(), 11);
+            if (rayTraceResult instanceof BlockHitResult) {
+                BlockHitResult blockRayTrace = (BlockHitResult) rayTraceResult;
+                if (dataTracker.get(IS_FLAMING) && world.isAir(blockRayTrace.getBlockPos().offset(blockRayTrace.getSide())) && net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(world, shootingEntity)) {
+                    world.setBlockState(blockRayTrace.getBlockPos().offset(blockRayTrace.getSide()), Blocks.FIRE.getDefaultState(), 11);
                 }
             }
-            if (dataManager.get(BOUNCES_LEFT) <= 0 || isInWater()) {
+            if (dataTracker.get(BOUNCES_LEFT) <= 0 || isTouchingWater()) {
                 detonate(rayTraceResult);
                 return;
             }
         }
-        if (dataManager.get(BOUNCES_LEFT) > 0 && !isInWater()) {
+        if (dataTracker.get(BOUNCES_LEFT) > 0 && !isTouchingWater()) {
             bounce(rayTraceResult);
         }
     }
 
-    private void bounce(RayTraceResult rayTraceResult) {
-        dataManager.set(BOUNCES_LEFT, dataManager.get(BOUNCES_LEFT) - 1);
-        world.playSound(null, posX, posY, posZ, SoundEvents.ENTITY_SLIME_JUMP, SoundCategory.NEUTRAL, 1, 1);
-        if (rayTraceResult instanceof BlockRayTraceResult) {
-            Direction.Axis axis = ((BlockRayTraceResult) rayTraceResult).getFace().getAxis();
-            Vec3d motion = getMotion();
+    private void bounce(HitResult rayTraceResult) {
+        dataTracker.set(BOUNCES_LEFT, dataTracker.get(BOUNCES_LEFT) - 1);
+        world.playSound(null, x, y, z, SoundEvents.ENTITY_SLIME_JUMP, SoundCategory.NEUTRAL, 1, 1);
+        if (rayTraceResult instanceof BlockHitResult) {
+            Direction.Axis axis = ((BlockHitResult) rayTraceResult).getSide().getAxis();
+            Vec3d motion = getVelocity();
             if (axis == Direction.Axis.X) {
-                setMotion(-motion.x * 0.75, motion.y, motion.z);
+                setVelocity(-motion.x * 0.75, motion.y, motion.z);
             } else if (axis == Direction.Axis.Y) {
-                setMotion(motion.x, -motion.y * 0.75, motion.z);
+                setVelocity(motion.x, -motion.y * 0.75, motion.z);
             } else if (axis == Direction.Axis.Z) {
-                setMotion(motion.x, motion.y, -motion.z * 0.75);
+                setVelocity(motion.x, motion.y, -motion.z * 0.75);
             }
-            world.setEntityState(this, (byte) 100);
-            if (!world.isRemote && dataManager.get(IS_BONE_MEAL)) {
+            world.sendEntityStatus(this, (byte) 100);
+            if (!world.isClient && dataTracker.get(IS_BONE_MEAL)) {
                 // noinspection deprecation
-                if (BoneMealItem.applyBonemeal(new ItemStack(Items.BONE_MEAL), world, ((BlockRayTraceResult) rayTraceResult).getPos())) {
-                    world.playEvent(2005, ((BlockRayTraceResult) rayTraceResult).getPos(), 0);
+                if (BoneMealItem.useOnFertilizable(new ItemStack(Items.BONE_MEAL), world, ((BlockHitResult) rayTraceResult).getBlockPos())) {
+                    world.playLevelEvent(2005, ((BlockHitResult) rayTraceResult).getBlockPos(), 0);
                 }
             }
-        } else if (rayTraceResult.getType() == RayTraceResult.Type.ENTITY) {
+        } else if (rayTraceResult.getType() == HitResult.Type.ENTITY) {
             detonate(rayTraceResult);
         }
     }
 
-    private void detonate(@Nullable RayTraceResult rayTraceResult) {
-        if (!world.isRemote) {
+    private void detonate(HitResult rayTraceResult) {
+        if (!world.isClient) {
             LivingEntity shootingEntity = getShootingEntity();
 
-            if (dataManager.get(IS_ENDER_PEARL)) {
+            if (dataTracker.get(IS_ENDER_PEARL)) {
                 doEnderPearlThings(rayTraceResult);
             }
             if (arrowStack != null && !arrowStack.isEmpty()) {
@@ -315,46 +316,46 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
 
             boolean canMobGrief = shootingEntity == null || net.minecraftforge.event.ForgeEventFactory.getMobGriefingEvent(world, shootingEntity);
             if (explosionPower > 0) {
-                new CustomExplosion(world, this, shootingEntity, posX, posY, posZ, (explosionPower + 2) / 2.25F, extraDamage, canMobGrief && dataManager.get(IS_FLAMING), canMobGrief && shouldDamageTerrain, !shouldDamageShooter, hasSilkTouch, fortuneLevel).detonate();
+                new CustomExplosion(world, this, shootingEntity, x, y, z, (explosionPower + 2) / 2.25F, extraDamage, canMobGrief && dataTracker.get(IS_FLAMING), canMobGrief && shouldDamageTerrain, !shouldDamageShooter, hasSilkTouch, fortuneLevel).detonate();
             } else {
-                world.setEntityState(this, (byte) 101);
-                world.playSound(null, posX, posY, posZ, getBlockState().getSoundType(world, new BlockPos(posX, posY, posZ), null).getBreakSound(), SoundCategory.NEUTRAL, 1, 1);
+                world.sendEntityStatus(this, (byte) 101);
+                world.playSound(null, x, y, z, getBlockState().getSoundType(world, new BlockPos(x, y, z), null).getBreakSound(), SoundCategory.NEUTRAL, 1, 1);
             }
 
-            if (dataManager.get(IS_BONE_MEAL)) {
+            if (dataTracker.get(IS_BONE_MEAL)) {
                 doBoneMealThings();
             }
 
-            if (!dataManager.get(POTION_STACK).isEmpty() && (dataManager.get(POTION_STACK).getItem() == Items.SPLASH_POTION || dataManager.get(POTION_STACK).getItem() == Items.LINGERING_POTION)) {
+            if (!dataTracker.get(POTION_STACK).isEmpty() && (dataTracker.get(POTION_STACK).getItem() == Items.SPLASH_POTION || dataTracker.get(POTION_STACK).getItem() == Items.LINGERING_POTION)) {
                 doPotionThings(rayTraceResult);
             }
-            if (!dataManager.get(FIREWORKS).isEmpty()) {
+            if (!dataTracker.get(FIREWORKS).isEmpty()) {
                 dealFireworkExplosionDamage();
-                world.setEntityState(this, (byte) 17);
+                world.sendEntityStatus(this, (byte) 17);
             }
             remove();
         }
     }
 
-    private void doEnderPearlThings(@Nullable RayTraceResult rayTraceResult) {
+    private void doEnderPearlThings(HitResult rayTraceResult) {
         LivingEntity shootingEntity = getShootingEntity();
         if (shootingEntity == null || !shootingEntity.isAlive() || shootingEntity.dimension != dimension) {
             return;
         }
 
-        if (rayTraceResult instanceof EntityRayTraceResult) {
-            if (((EntityRayTraceResult) rayTraceResult).getEntity() == shootingEntity) {
+        if (rayTraceResult instanceof EntityHitResult) {
+            if (((EntityHitResult) rayTraceResult).getEntity() == shootingEntity) {
                 return;
             }
-            ((EntityRayTraceResult) rayTraceResult).getEntity().attackEntityFrom(DamageSource.causeThrownDamage(this, shootingEntity), 0.0F);
+            ((EntityHitResult) rayTraceResult).getEntity().damage(DamageSource.thrownProjectile(this, shootingEntity), 0.0F);
         }
 
         for (int i = 0; i < 32; ++i) {
-            world.addParticle(ParticleTypes.PORTAL, posX, posY + rand.nextDouble() * 2.0D, posZ, rand.nextGaussian(), 0.0D, rand.nextGaussian());
+            world.addParticle(ParticleTypes.PORTAL, x, y + random.nextDouble() * 2.0D, z, random.nextGaussian(), 0.0D, random.nextGaussian());
         }
 
-        if (!world.isRemote) {
-            teleportEntity(shootingEntity, posX, posY, posZ);
+        if (!world.isClient) {
+            teleportEntity(shootingEntity, x, y, z);
         }
     }
 
@@ -362,23 +363,23 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
         if (entity instanceof ServerPlayerEntity) {
             ServerPlayerEntity entityplayermp = (ServerPlayerEntity) entity;
 
-            if (entityplayermp.connection.getNetworkManager().isChannelOpen() && entityplayermp.world == world && !entityplayermp.isSleeping()) {
+            if (entityplayermp.networkHandler.getConnection().isOpen() && entityplayermp.world == world && !entityplayermp.isSleeping()) {
                 entity.stopRiding();
-                entity.setPositionAndUpdate(posX, posY, posZ);
+                entity.requestTeleport(posX, posY, posZ);
                 entity.fallDistance = 0;
-                entity.attackEntityFrom(DamageSource.FALL, 3);
+                entity.damage(DamageSource.FALL, 3);
             }
         } else {
-            entity.setPositionAndUpdate(posX, posY, posZ);
+            entity.requestTeleport(posX, posY, posZ);
             entity.fallDistance = 0;
         }
     }
 
-    private void spawnArrows(@Nullable RayTraceResult rayTraceResult) {
+    private void spawnArrows(HitResult rayTraceResult) {
         LivingEntity shootingEntity = getShootingEntity();
 
         for (int i = 0; i < arrowStack.getCount(); i++) {
-            AbstractArrowEntity arrow;
+            ProjectileEntity arrow;
             if (shootingEntity != null) {
                 arrow = ((ArrowItem) arrowStack.getItem()).createArrow(world, arrowStack, shootingEntity);
             } else {
@@ -387,20 +388,20 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
                 }
                 arrow = ((ArrowItem) arrowStack.getItem()).createArrow(world, arrowStack, FakePlayerFactory.getMinecraft((ServerWorld) world));
             }
-            arrow.posX = posX;
-            arrow.posY = posY;
-            arrow.posZ = posZ;
-            arrow.pickupStatus = ArrowEntity.PickupStatus.CREATIVE_ONLY;
+            arrow.x = x;
+            arrow.y = y;
+            arrow.z = z;
+            arrow.pickupType = ArrowEntity.PickupPermission.CREATIVE_ONLY;
             arrow.setDamage(arrow.getDamage() * 2.5);
             if (shootingEntity != null) {
-                arrow.shootingEntity = this.shootingEntity;
+                arrow.ownerUuid = this.shootingEntity;
             }
-            Vec3d motion = getMotion();
+            Vec3d motion = getVelocity();
             double x = motion.x;
             double y = motion.y;
             double z = motion.z;
-            if (rayTraceResult instanceof BlockRayTraceResult) {
-                Direction.Axis axis = ((BlockRayTraceResult) rayTraceResult).getFace().getAxis();
+            if (rayTraceResult instanceof BlockHitResult) {
+                Direction.Axis axis = ((BlockHitResult) rayTraceResult).getSide().getAxis();
                 if (axis == Direction.Axis.X) {
                     x = -motion.x;
                 } else if (axis == Direction.Axis.Y) {
@@ -408,37 +409,36 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
                 } else if (axis == Direction.Axis.Z) {
                     z = -motion.z;
                 }
-            } else if (rayTraceResult instanceof EntityRayTraceResult) {
-                x = rand.nextDouble() * 2 - 1;
-                y = rand.nextDouble();
-                z = rand.nextDouble() * 2 - 1;
+            } else if (rayTraceResult instanceof EntityHitResult) {
+                x = random.nextDouble() * 2 - 1;
+                y = random.nextDouble();
+                z = random.nextDouble() * 2 - 1;
             }
-            arrow.shoot(x, y, z, (float) motion.length(), 10);
-            world.addEntity(arrow);
+            arrow.setVelocity(x, y, z, (float) motion.length(), 10);
+            world.spawnEntity(arrow);
         }
     }
 
     private void doBoneMealThings() {
-        BlockPos.getAllInBox((int) (posX + 0.5) - 5, (int) (posY + 0.5) - 5, (int) (posZ + 0.5) - 5, (int) (posX + 0.5) + 5, (int) (posY + 0.5) + 5, (int) (posZ + 0.5) + 5).forEach(pos -> {
-            // noinspection deprecation
-            if (rand.nextInt(8) == 0 && BoneMealItem.applyBonemeal(new ItemStack(Items.BONE_MEAL), world, pos)) {
-                world.playEvent(2005, pos, 0);
+        BlockPos.stream((int) (x + 0.5) - 5, (int) (y + 0.5) - 5, (int) (z + 0.5) - 5, (int) (x + 0.5) + 5, (int) (y + 0.5) + 5, (int) (z + 0.5) + 5).forEach(pos -> {
+            if (random.nextInt(8) == 0 && BoneMealItem.useOnFertilizable(new ItemStack(Items.BONE_MEAL), world, pos)) {
+                world.playLevelEvent(2005, pos, 0);
             }
         });
     }
 
-    private void doPotionThings(@Nullable RayTraceResult rayTraceResult) {
-        if (!world.isRemote) {
-            ItemStack stack = dataManager.get(POTION_STACK);
-            Potion potion = PotionUtils.getPotionFromItem(stack);
-            List<EffectInstance> list = PotionUtils.getEffectsFromStack(stack);
+    private void doPotionThings(HitResult rayTraceResult) {
+        if (!world.isClient) {
+            ItemStack stack = dataTracker.get(POTION_STACK);
+            Potion potion = PotionUtil.getPotion(stack);
+            List<StatusEffectInstance> list = PotionUtil.getPotionEffects(stack);
             boolean isWater = potion == Potions.WATER && list.isEmpty();
 
-            if (rayTraceResult instanceof BlockRayTraceResult && isWater) {
-                BlockPos pos = ((BlockRayTraceResult) rayTraceResult).getPos().offset(((BlockRayTraceResult) rayTraceResult).getFace());
-                extinguishFires(pos, ((BlockRayTraceResult) rayTraceResult).getFace());
+            if (rayTraceResult instanceof BlockHitResult && isWater) {
+                BlockPos pos = ((BlockHitResult) rayTraceResult).getBlockPos().offset(((BlockHitResult) rayTraceResult).getSide());
+                extinguishFires(pos, ((BlockHitResult) rayTraceResult).getSide());
 
-                for (Direction face : Direction.Plane.HORIZONTAL) {
+                for (Direction face : Direction.Type.HORIZONTAL) {
                     extinguishFires(pos.offset(face), face);
                 }
             }
@@ -450,8 +450,8 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
                     makeAreaOfEffectCloud(stack, potion);
                 } else {
                     Entity hitEntity = null;
-                    if (rayTraceResult instanceof EntityRayTraceResult) {
-                        hitEntity = ((EntityRayTraceResult) rayTraceResult).getEntity();
+                    if (rayTraceResult instanceof EntityHitResult) {
+                        hitEntity = ((EntityHitResult) rayTraceResult).getEntity();
                     }
                     applySplash(list, hitEntity);
                 }
@@ -459,37 +459,37 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
 
             // spawn particles
             int eventType = potion.hasInstantEffect() ? 2007 : 2002;
-            world.playEvent(eventType, new BlockPos(this), PotionUtils.getColor(stack));
+            world.playLevelEvent(eventType, new BlockPos(this), PotionUtil.getColor(stack));
         }
     }
 
     private void extinguishFires(BlockPos pos, Direction face) {
         if (this.world.getBlockState(pos).getBlock() == Blocks.FIRE) {
-            this.world.extinguishFire(null, pos.offset(face), face.getOpposite());
+            this.world.method_8506(null, pos.offset(face), face.getOpposite());
         }
     }
 
     private void applyWater() {
-        AxisAlignedBB axisalignedbb = getBoundingBox().grow(5, 3, 5);
-        List<LivingEntity> list = world.getEntitiesWithinAABB(LivingEntity.class, axisalignedbb, PotionEntity.WATER_SENSITIVE);
+        Box axisalignedbb = getBoundingBox().expand(5, 3, 5);
+        List<LivingEntity> list = world.getEntities(LivingEntity.class, axisalignedbb, ThrownPotionEntity.WATER_HURTS);
         if (!list.isEmpty()) {
             for (LivingEntity entitylivingbase : list) {
-                double distance = getDistanceSq(entitylivingbase);
+                double distance = squaredDistanceTo(entitylivingbase);
 
                 if (distance < 16.0D && (entitylivingbase instanceof EndermanEntity || entitylivingbase instanceof BlazeEntity)) {
-                    entitylivingbase.attackEntityFrom(DamageSource.DROWN, 1);
+                    entitylivingbase.damage(DamageSource.DROWN, 1);
                 }
             }
         }
     }
 
-    private void applySplash(List<EffectInstance> effectInstances, @Nullable Entity hitEntity) {
-        AxisAlignedBB boundingBox = getBoundingBox().grow(4, 2, 4);
-        List<LivingEntity> entities = world.getEntitiesWithinAABB(LivingEntity.class, boundingBox);
+    private void applySplash(List<StatusEffectInstance> effectInstances, Entity hitEntity) {
+        Box boundingBox = getBoundingBox().expand(4, 2, 4);
+        List<LivingEntity> entities = world.getNonSpectatingEntities(LivingEntity.class, boundingBox);
 
         for (LivingEntity entity : entities) {
-            double distance = getDistanceSq(entity);
-            if (!entity.canBeHitWithPotion() || distance >= 16) {
+            double distance = squaredDistanceTo(entity);
+            if (!entity.isAffectedBySplashPotions() || distance >= 16) {
                 break;
             }
 
@@ -498,14 +498,14 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
                 effectMultiplier = 1;
             }
 
-            for (EffectInstance effectInstance : effectInstances) {
-                Effect effect = effectInstance.getPotion();
+            for (StatusEffectInstance effectInstance : effectInstances) {
+                StatusEffect effect = effectInstance.getEffectType();
                 if (effect.isInstant()) {
-                    effect.affectEntity(this, getShootingEntity(), entity, effectInstance.getAmplifier(), effectMultiplier);
+                    effect.applyInstantEffect(this, getShootingEntity(), entity, effectInstance.getAmplifier(), effectMultiplier);
                 } else {
                     int duration = (int) (effectMultiplier * (double) effectInstance.getDuration() + 0.5);
                     if (duration > 20) {
-                        entity.addPotionEffect(new EffectInstance(effect, duration, effectInstance.getAmplifier(), effectInstance.isAmbient(), effectInstance.doesShowParticles()));
+                        entity.addStatusEffect(new StatusEffectInstance(effect, duration, effectInstance.getAmplifier(), effectInstance.isAmbient(), effectInstance.shouldShowParticles()));
                     }
                 }
             }
@@ -513,50 +513,50 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
     }
 
     private void makeAreaOfEffectCloud(ItemStack stack, Potion potion) {
-        AreaEffectCloudEntity effectCloud = new AreaEffectCloudEntity(world, posX, posY, posZ);
+        AreaEffectCloudEntity effectCloud = new AreaEffectCloudEntity(world, x, y, z);
         effectCloud.setOwner(getShootingEntity());
         effectCloud.setRadius(3.2F);
         effectCloud.setRadiusOnUse(-0.4F);
         effectCloud.setWaitTime(10);
-        effectCloud.setRadiusPerTick(-effectCloud.getRadius() / effectCloud.getDuration());
+        effectCloud.setRadiusGrowth(-effectCloud.getRadius() / effectCloud.getDuration());
         effectCloud.setPotion(potion);
 
-        for (EffectInstance effectInstance : PotionUtils.getFullEffectsFromItem(stack)) {
-            effectCloud.addEffect(new EffectInstance(effectInstance));
+        for (StatusEffectInstance effectInstance : PotionUtil.getCustomPotionEffects(stack)) {
+            effectCloud.addEffect(new StatusEffectInstance(effectInstance));
         }
 
-        CompoundNBT compoundNBT = stack.getTag();
+        CompoundTag compoundNBT = stack.getTag();
         if (compoundNBT != null && compoundNBT.contains("CustomPotionColor", 99)) {
             effectCloud.setColor(compoundNBT.getInt("CustomPotionColor"));
         }
 
-        world.addEntity(effectCloud);
+        world.spawnEntity(effectCloud);
     }
 
     private void dealFireworkExplosionDamage() {
         int damageMultiplier = 0;
-        ListNBT explosions = dataManager.get(FIREWORKS).getList("Explosions", 10);
+        ListTag explosions = dataTracker.get(FIREWORKS).getList("Explosions", 10);
 
         if (!explosions.isEmpty()) {
             damageMultiplier = 5 + explosions.size() * 2;
         }
 
         if (damageMultiplier > 0) {
-            Vec3d posVec = new Vec3d(posX, posY, posZ);
+            Vec3d posVec = new Vec3d(x, y, z);
 
-            for (LivingEntity entity : world.getEntitiesWithinAABB(LivingEntity.class, this.getBoundingBox().grow(5))) {
-                if (getDistanceSq(entity) <= 25) {
+            for (LivingEntity entity : world.getNonSpectatingEntities(LivingEntity.class, this.getBoundingBox().expand(5))) {
+                if (squaredDistanceTo(entity) <= 25) {
                     boolean flag = false;
                     for (int i = 0; i < 2; ++i) {
-                        RayTraceResult raytraceresult = world.rayTraceBlocks(new RayTraceContext(posVec, new Vec3d(entity.posX, entity.posY + entity.getHeight() * 0.5 * i, entity.posZ), RayTraceContext.BlockMode.COLLIDER, RayTraceContext.FluidMode.NONE, this));
-                        if (raytraceresult.getType() == RayTraceResult.Type.MISS) {
+                        HitResult raytraceresult = world.rayTrace(new RayTraceContext(posVec, new Vec3d(entity.x, entity.y + entity.getHeight() * 0.5 * i, entity.z), RayTraceContext.ShapeType.COLLIDER, RayTraceContext.FluidHandling.NONE, this));
+                        if (raytraceresult.getType() == HitResult.Type.MISS) {
                             flag = true;
                             break;
                         }
                     }
 
                     if (flag) {
-                        entity.attackEntityFrom(DamageSource.FIREWORKS, damageMultiplier * (float) Math.sqrt((5 - getDistance(entity)) / 5));
+                        entity.damage(DamageSource.FIREWORKS, damageMultiplier * (float) Math.sqrt((5 - distanceTo(entity)) / 5));
                     }
                 }
             }
@@ -564,77 +564,77 @@ public class JackOProjectileEntity extends Entity implements IProjectile {
     }
 
     private void spawnParticles() {
-        if (world.isRemote) {
-            if (isInWater()) {
+        if (world.isClient) {
+            if (isTouchingWater()) {
                 for (int i = 0; i < 4; ++i) {
-                    world.addParticle(ParticleTypes.BUBBLE, posX - getMotion().getX() * 0.25, posY - getMotion().getY() * 0.25, posZ - getMotion().getZ() * 0.25, getMotion().getX(), getMotion().getY(), getMotion().getZ());
+                    world.addParticle(ParticleTypes.BUBBLE, x - getVelocity().getX() * 0.25, y - getVelocity().getY() * 0.25, z - getVelocity().getZ() * 0.25, getVelocity().getX(), getVelocity().getY(), getVelocity().getZ());
                 }
             } else {
-                if (dataManager.get(IS_FLAMING)) {
+                if (dataTracker.get(IS_FLAMING)) {
                     spawnParticle(ParticleTypes.FLAME, 0.25, 0.6, 0);
                 }
-                if (dataManager.get(IS_SMOKING)) {
+                if (dataTracker.get(IS_SMOKING)) {
                     for (int i = 0; i < 3; i++) {
                         spawnParticle(ParticleTypes.SMOKE, 0.25, 0.3, 0);
                     }
-                    if (ticksExisted % 2 == 0) {
+                    if (age % 2 == 0) {
                         spawnParticle(ParticleTypes.LARGE_SMOKE, 0.4, 0.3, 0);
                     }
                 }
-                if (!dataManager.get(FIREWORKS).isEmpty()) {
-                    world.addParticle(ParticleTypes.FIREWORK, posX, posY, posZ, rand.nextGaussian() * 0.05, -getMotion().getY() * 0.5, rand.nextGaussian() * 0.05);
+                if (!dataTracker.get(FIREWORKS).isEmpty()) {
+                    world.addParticle(ParticleTypes.FIREWORK, x, y, z, random.nextGaussian() * 0.05, -getVelocity().getY() * 0.5, random.nextGaussian() * 0.05);
                 }
-                if (dataManager.get(IS_BONE_MEAL) && ticksExisted % 3 == 0) {
+                if (dataTracker.get(IS_BONE_MEAL) && age % 3 == 0) {
                     spawnParticle(ParticleTypes.HAPPY_VILLAGER, 0.1, 0, 0.02);
                 }
-                if (dataManager.get(IS_ENDER_PEARL)) {
+                if (dataTracker.get(IS_ENDER_PEARL)) {
                     spawnParticle(ParticleTypes.PORTAL, 0.3, 0, 0.08);
                 }
-                if (!dataManager.get(POTION_STACK).isEmpty()) {
-                    int color = PotionUtils.getColor(dataManager.get(POTION_STACK));
+                if (!dataTracker.get(POTION_STACK).isEmpty()) {
+                    int color = PotionUtil.getColor(dataTracker.get(POTION_STACK));
                     if (color > 0) {
-                        world.addOptionalParticle(ParticleTypes.ENTITY_EFFECT, posX + (rand.nextDouble() - 0.5) * getWidth(), posY + rand.nextDouble() * getHeight(), posZ + (rand.nextDouble() - 0.5) * getWidth(), (color >> 16 & 255) / 255D, (color >> 8 & 255) / 255D, (color & 255) / 255D);
+                        world.addImportantParticle(ParticleTypes.ENTITY_EFFECT, x + (random.nextDouble() - 0.5) * getWidth(), y + random.nextDouble() * getHeight(), z + (random.nextDouble() - 0.5) * getWidth(), (color >> 16 & 255) / 255D, (color >> 8 & 255) / 255D, (color & 255) / 255D);
                     }
                 }
             }
         }
     }
 
-    private void spawnParticle(IParticleData particle, double spreadMultiplier, double motionMultiplier, double motionSpreadMultiplier) {
-        world.addParticle(particle, posX + rand.nextGaussian() * spreadMultiplier, posY + rand.nextGaussian() * spreadMultiplier + 0.5, posZ + rand.nextGaussian() * spreadMultiplier, getMotion().getX() * motionMultiplier + rand.nextGaussian() * motionSpreadMultiplier, getMotion().getY() * motionMultiplier + rand.nextGaussian() * motionSpreadMultiplier, getMotion().getZ() * motionMultiplier + rand.nextGaussian() * motionSpreadMultiplier);
+    private void spawnParticle(ParticleEffect particle, double spreadMultiplier, double motionMultiplier, double motionSpreadMultiplier) {
+        world.addParticle(particle, x + random.nextGaussian() * spreadMultiplier, y + random.nextGaussian() * spreadMultiplier + 0.5, z + random.nextGaussian() * spreadMultiplier, getVelocity().getX() * motionMultiplier + random.nextGaussian() * motionSpreadMultiplier, getVelocity().getY() * motionMultiplier + random.nextGaussian() * motionSpreadMultiplier, getVelocity().getZ() * motionMultiplier + random.nextGaussian() * motionSpreadMultiplier);
     }
 
     @Override
-    @OnlyIn(Dist.CLIENT)
-    public void handleStatusUpdate(byte id) {
+    @Environment(EnvType.CLIENT)
+    public void handleStatus(byte id) {
         switch (id) {
             case (17):
-                world.makeFireworks(posX, posY, posZ, getMotion().getX(), getMotion().getY(), getMotion().getZ(), dataManager.get(FIREWORKS));
+                world.addFireworkParticle(x, y, z, getVelocity().getX(), getVelocity().getY(), getVelocity().getZ(), dataTracker.get(FIREWORKS));
                 break;
             case (100):
                 for (int j = 0; j < 16; ++j) {
-                    float rotationXZ = (float) (rand.nextFloat() * Math.PI * 2);
-                    float rotationY = (float) (rand.nextFloat() * Math.PI);
-                    float distance = rand.nextFloat() * 0.4F + 0.3F;
+                    float rotationXZ = (float) (random.nextFloat() * Math.PI * 2);
+                    float rotationY = (float) (random.nextFloat() * Math.PI);
+                    float distance = random.nextFloat() * 0.4F + 0.3F;
                     float x = MathHelper.sin(rotationXZ) * MathHelper.sin(rotationY) * distance;
                     float y = MathHelper.cos(rotationXZ) * MathHelper.sin(rotationY) * distance;
                     float z = MathHelper.cos(rotationY) * distance;
-                    world.addParticle(ParticleTypes.ITEM_SLIME, posX + x, posY + y, posZ + z, 0, 0, 0);
+                    world.addParticle(ParticleTypes.ITEM_SLIME, x + x, y + y, z + z, 0, 0, 0);
                 }
                 break;
             case (101):
                 for (int j = 0; j < 48; ++j) {
-                    float rotationXZ = (float) (rand.nextFloat() * Math.PI * 2);
-                    float rotationY = (float) (rand.nextFloat() * Math.PI);
-                    float distance = rand.nextFloat() * 0.4F + 0.3F;
+                    float rotationXZ = (float) (random.nextFloat() * Math.PI * 2);
+                    float rotationY = (float) (random.nextFloat() * Math.PI);
+                    float distance = random.nextFloat() * 0.4F + 0.3F;
                     float x = MathHelper.sin(rotationXZ) * MathHelper.sin(rotationY) * distance;
                     float y = MathHelper.cos(rotationXZ) * MathHelper.sin(rotationY) * distance;
                     float z = MathHelper.cos(rotationY) * distance;
-                    world.addParticle(new BlockParticleData(ParticleTypes.BLOCK, getBlockState()), posX + x, posY + y, posZ + z, 0, 0, 0);
+                    world.addParticle(new BlockStateParticleEffect(ParticleTypes.BLOCK, getBlockState()), x + x, y + y, z + z, 0, 0, 0);
                 }
                 break;
             default:
-                super.handleStatusUpdate(id);
+                super.handleStatus(id);
                 break;
         }
     }

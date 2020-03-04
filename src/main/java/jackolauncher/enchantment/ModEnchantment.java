@@ -1,37 +1,33 @@
 package jackolauncher.enchantment;
 
-import jackolauncher.JackOLauncher;
 import jackolauncher.item.JackOLauncherItem;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentType;
-import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.enchantment.EnchantmentTarget;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.item.ItemStack;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@ParametersAreNonnullByDefault
 public class ModEnchantment extends Enchantment {
 
     protected final int maxLevel;
 
-    protected ModEnchantment(Rarity rarity, String name, int maxLevel) {
-        super(rarity, EnchantmentType.BOW, new EquipmentSlotType[]{EquipmentSlotType.MAINHAND});
-        this.setRegistryName(JackOLauncher.MODID, name);
+    protected ModEnchantment(Weight rarity, int maxLevel) {
+        super(rarity, EnchantmentTarget.BOW, new EquipmentSlot[]{EquipmentSlot.MAINHAND});
         this.maxLevel = maxLevel;
     }
 
     @Override
-    public boolean canApply(ItemStack stack) {
-        return stack.getItem() instanceof JackOLauncherItem && super.canApply(stack);
+    public boolean isAcceptableItem(ItemStack stack) {
+        return stack.getItem() instanceof JackOLauncherItem && super.isAcceptableItem(stack);
     }
 
-    @Override
+    // TODO: patch?
+    /*@Override
     public boolean canApplyAtEnchantingTable(ItemStack stack) {
         return stack.getItem() instanceof JackOLauncherItem && super.canApplyAtEnchantingTable(stack);
-    }
+    }*/
 
     @Override
-    public int getMaxLevel() {
+    public int getMaximumLevel() {
         return maxLevel;
     }
 }

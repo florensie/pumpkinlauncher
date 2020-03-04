@@ -5,32 +5,28 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSerializationContext;
 import jackolauncher.JackOLauncher;
 import jackolauncher.item.JackOAmmoHelper;
-import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
-import net.minecraft.item.DyeColor;
-import net.minecraft.item.FireworkRocketItem;
+import net.minecraft.item.FireworkItem;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
+import net.minecraft.loot.context.LootContext;
+import net.minecraft.loot.function.ConditionalLootFunction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.potion.Potion;
-import net.minecraft.potion.PotionUtils;
+import net.minecraft.potion.PotionUtil;
 import net.minecraft.potion.Potions;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.storage.loot.LootContext;
-import net.minecraft.world.storage.loot.LootFunction;
-import net.minecraft.world.storage.loot.conditions.ILootCondition;
-import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.util.DyeColor;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.world.loot.condition.LootCondition;
 
-import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
-public class SetRandomJackOAmmoNBT extends LootFunction {
+public class SetRandomJackOAmmoNBT extends ConditionalLootFunction {
 
     public static final Block[] PUMPKIN_BLOCKS = {
             Blocks.PUMPKIN,
@@ -45,16 +41,16 @@ public class SetRandomJackOAmmoNBT extends LootFunction {
             Blocks.TNT,
     };
 
-    protected SetRandomJackOAmmoNBT(ILootCondition[] conditionsIn) {
+    protected SetRandomJackOAmmoNBT(LootCondition[] conditionsIn) {
         super(conditionsIn);
     }
 
     private static void addRandomFireworks(ItemStack stack, Random random) {
         ItemStack fireworks = new ItemStack(Items.FIREWORK_ROCKET);
-        CompoundNBT compound = fireworks.getOrCreateChildTag("Fireworks");
+        CompoundTag compound = fireworks.getOrCreateSubTag("Fireworks");
         compound.putByte("Flight", (byte) (random.nextInt(3) + 1));
 
-        CompoundNBT explosionCompound = new CompoundNBT();
+        CompoundTag explosionCompound = new CompoundTag();
         explosionCompound.putBoolean("Flicker", random.nextBoolean());
         explosionCompound.putBoolean("Trail", random.nextBoolean());
 
@@ -72,9 +68,9 @@ public class SetRandomJackOAmmoNBT extends LootFunction {
         }
         explosionCompound.putIntArray("FadeColors", colors);
 
-        explosionCompound.putByte("Type", (byte) FireworkRocketItem.Shape.values()[random.nextInt(FireworkRocketItem.Shape.values().length)].func_196071_a());
+        explosionCompound.putByte("Type", (byte) FireworkItem.Type.values()[random.nextInt(FireworkItem.Type.values().length)].getId());
 
-        ListNBT explosions = new ListNBT();
+        ListTag explosions = new ListTag();
         explosions.add(explosionCompound);
 
         compound.put("Explosions", explosions);
@@ -84,14 +80,15 @@ public class SetRandomJackOAmmoNBT extends LootFunction {
 
     private static void addRandomPotion(ItemStack stack, Random random) {
         List<Potion> potionTypes = new ArrayList<>(ForgeRegistries.POTION_TYPES.getValues());
+        Registry.POTION.
         potionTypes.remove(Potions.EMPTY);
         ItemStack potion = new ItemStack(random.nextInt(4) == 0 ? Items.LINGERING_POTION : Items.SPLASH_POTION);
-        PotionUtils.addPotionToItemStack(potion, potionTypes.get(random.nextInt(potionTypes.size())));
+        PotionUtil.setPotion(potion, potionTypes.get(random.nextInt(potionTypes.size())));
         JackOAmmoHelper.setPotion(stack, potion);
     }
 
     @Override
-    protected ItemStack doApply(ItemStack stack, LootContext context) {
+    protected ItemStack process(ItemStack stack, LootContext context) {
         Random random = context.getRandom();
 
         if (random.nextInt(12) == 0) {
@@ -148,19 +145,23 @@ public class SetRandomJackOAmmoNBT extends LootFunction {
         return stack;
     }
 
-    public static class Serializer extends LootFunction.Serializer<SetRandomJackOAmmoNBT> {
+    public static ConditionalLootFunction.Builder<?> builder() {
+        return builder(SetRandomJackOAmmoNBT::new);
+    }
 
-        public Serializer() {
-            super(new ResourceLocation(JackOLauncher.MODID, "set_random_jack_o_ammo_nbt"), SetRandomJackOAmmoNBT.class);
+    public static class Factory extends ConditionalLootFunction.Factory<SetRandomJackOAmmoNBT> {
+
+        public Factory() {
+            super(new Identifier(JackOLauncher.MODID, "set_random_jack_o_ammo_nbt"), SetRandomJackOAmmoNBT.class);
         }
 
         @Override
-        public void serialize(JsonObject object, SetRandomJackOAmmoNBT function, JsonSerializationContext serializationContext) {
+        public void toJson(JsonObject object, SetRandomJackOAmmoNBT function, JsonSerializationContext serializationContext) {
 
         }
 
         @Override
-        public SetRandomJackOAmmoNBT deserialize(JsonObject object, JsonDeserializationContext deserializationContext, ILootCondition[] conditions) {
+        public SetRandomJackOAmmoNBT fromJson(JsonObject object, JsonDeserializationContext deserializationContext, LootCondition[] conditions) {
             return new SetRandomJackOAmmoNBT(conditions);
         }
     }

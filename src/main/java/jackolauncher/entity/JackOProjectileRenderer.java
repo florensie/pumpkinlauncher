@@ -1,28 +1,25 @@
 package jackolauncher.entity;
 
 import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockRendererDispatcher;
-import net.minecraft.client.renderer.entity.EntityRenderer;
-import net.minecraft.client.renderer.entity.EntityRendererManager;
-import net.minecraft.client.renderer.texture.AtlasTexture;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.block.BlockRenderManager;
+import net.minecraft.client.render.entity.EntityRenderDispatcher;
+import net.minecraft.client.render.entity.EntityRenderer;
+import net.minecraft.client.texture.SpriteAtlasTexture;
+import net.minecraft.util.Identifier;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@OnlyIn(Dist.CLIENT)
+@Environment(EnvType.CLIENT)
 public class JackOProjectileRenderer extends EntityRenderer<JackOProjectileEntity> {
 
-    public JackOProjectileRenderer(EntityRendererManager rendererManager) {
+    public JackOProjectileRenderer(EntityRenderDispatcher rendererManager) {
         super(rendererManager);
-        shadowSize = 0.5F;
+        field_4673 = 0.5F;
     }
 
     @Override
-    @ParametersAreNonnullByDefault
-    public void doRender(JackOProjectileEntity entity, double x, double y, double z, float entityYaw, float partialTicks) {
+    public void render(JackOProjectileEntity entity, double x, double y, double z, float entityYaw, float partialTicks) {
         GlStateManager.pushMatrix();
 
         GlStateManager.translatef((float) x, (float) y + 0.5F, (float) z);
@@ -31,17 +28,16 @@ public class JackOProjectileRenderer extends EntityRenderer<JackOProjectileEntit
         GlStateManager.rotatef(rotation, 0, 1, 0);
         GlStateManager.translatef(-0.5F, -0.5F, +0.5F);
 
-        bindTexture(AtlasTexture.LOCATION_BLOCKS_TEXTURE);
-        BlockRendererDispatcher blockrendererdispatcher = Minecraft.getInstance().getBlockRendererDispatcher();
-        blockrendererdispatcher.getBlockModelRenderer().renderModelBrightness(blockrendererdispatcher.getModelForState(entity.getBlockState()), entity.getBlockState(), 1, false);
+        bindTexture(SpriteAtlasTexture.BLOCK_ATLAS_TEX);
+        BlockRenderManager blockrendererdispatcher = MinecraftClient.getInstance().getBlockRenderManager();
+        blockrendererdispatcher.getModelRenderer().render(blockrendererdispatcher.getModel(entity.getBlockState()), entity.getBlockState(), 1, false);
 
         GlStateManager.popMatrix();
-        super.doRender(entity, x, y, z, entityYaw, partialTicks);
+        super.render(entity, x, y, z, entityYaw, partialTicks);
     }
 
     @Override
-    @ParametersAreNonnullByDefault
-    protected ResourceLocation getEntityTexture(JackOProjectileEntity entity) {
-        return AtlasTexture.LOCATION_BLOCKS_TEXTURE;
+    protected Identifier getTexture(JackOProjectileEntity entity) {
+        return SpriteAtlasTexture.BLOCK_ATLAS_TEX;
     }
 }

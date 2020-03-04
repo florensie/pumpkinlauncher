@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "jack_o_launcher",
+  "version": "${version}",
+
+  "name": "Jack-O'-Launcher",
+  "description": "Exploding jack-o'-lanterns and stuff",
+  "authors": [
+    "ochotonida",
+    "Florens Pauwels"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+
+  "license": "MIT",
+  "icon": "assets/jack_o_launcher/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "jackolauncher.JackOLauncher"
+    ]
+  },
+
+  "depends": {
+    "fabricloader": "*",
+    "fabric": "*"
+  }
+}

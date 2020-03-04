@@ -3,14 +3,14 @@ package jackolauncher.enchantment;
 public class BlastShieldEnchantment extends ModEnchantment {
 
     public BlastShieldEnchantment() {
-        super(Rarity.UNCOMMON, "blast_shield", 1);
+        super(Weight.UNCOMMON, 1);
     }
 
-    public int getMinEnchantability(int enchantmentLevel) {
+    public int getMinimumPower(int enchantmentLevel) {
         return 20;
     }
 
-    public int getMaxEnchantability(int enchantmentLevel) {
+    public int getMaximumPower(int enchantmentLevel) {
         return 50;
     }
 }

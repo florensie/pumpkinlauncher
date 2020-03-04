@@ -3,16 +3,16 @@ package jackolauncher.enchantment;
 public class ReloadingEnchantment extends ModEnchantment {
 
     public ReloadingEnchantment() {
-        super(Rarity.UNCOMMON, "reloading", 4);
+        super(Weight.UNCOMMON, 4);
     }
 
     @Override
-    public int getMinEnchantability(int enchantmentLevel) {
+    public int getMinimumPower(int enchantmentLevel) {
         return 1 + (enchantmentLevel - 1) * 10;
     }
 
     @Override
-    public int getMaxEnchantability(int enchantmentLevel) {
-        return this.getMinEnchantability(enchantmentLevel) + 15;
+    public int getMaximumPower(int enchantmentLevel) {
+        return this.getMinimumPower(enchantmentLevel) + 15;
     }
 }

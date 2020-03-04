@@ -3,14 +3,14 @@ package jackolauncher.enchantment;
 public class LaunchingEnchantment extends ModEnchantment {
 
     public LaunchingEnchantment() {
-        super(Rarity.COMMON, "launching", 5);
+        super(Weight.COMMON, 5);
     }
 
-    public int getMinEnchantability(int enchantmentLevel) {
+    public int getMinimumPower(int enchantmentLevel) {
         return 1 + (enchantmentLevel - 1) * 10;
     }
 
-    public int getMaxEnchantability(int enchantmentLevel) {
-        return this.getMinEnchantability(enchantmentLevel) + 15;
+    public int getMaximumPower(int enchantmentLevel) {
+        return this.getMinimumPower(enchantmentLevel) + 15;
     }
 }

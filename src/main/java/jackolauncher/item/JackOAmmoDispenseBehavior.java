@@ -1,43 +1,38 @@
 package jackolauncher.item;
 
 import jackolauncher.entity.JackOProjectileEntity;
-import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.DispenserBlock;
-import net.minecraft.dispenser.IBlockSource;
-import net.minecraft.dispenser.IPosition;
-import net.minecraft.dispenser.Position;
-import net.minecraft.dispenser.ProjectileDispenseBehavior;
+import net.minecraft.block.dispenser.ProjectileDispenserBehavior;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.IProjectile;
+import net.minecraft.entity.projectile.Projectile;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.Direction;
+import net.minecraft.util.math.BlockPointer;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Position;
+import net.minecraft.util.math.PositionImpl;
 import net.minecraft.world.World;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@ParametersAreNonnullByDefault
-@MethodsReturnNonnullByDefault
-public class JackOAmmoDispenseBehavior extends ProjectileDispenseBehavior {
+public class JackOAmmoDispenseBehavior extends ProjectileDispenserBehavior {
 
     @Override
-    public ItemStack dispenseStack(IBlockSource blockSource, ItemStack stack) {
+    public ItemStack dispenseSilently(BlockPointer blockSource, ItemStack stack) {
         World world = blockSource.getWorld();
-        IPosition position = DispenserBlock.getDispensePosition(blockSource);
+        Position position = DispenserBlock.getOutputLocation(blockSource);
         Direction direction = blockSource.getBlockState().get(DispenserBlock.FACING);
-        IProjectile projectile = getProjectileEntity(world, new Position(position.getX() + direction.getXOffset() * 0.5, position.getY() - 0.5 + direction.getYOffset() * 0.5, position.getZ() + direction.getZOffset() * 0.5), stack);
-        projectile.shoot(direction.getXOffset(), direction.getYOffset(), direction.getZOffset(), getProjectileVelocity(), getProjectileInaccuracy());
-        world.addEntity((Entity) projectile);
-        stack.shrink(1);
+        Projectile projectile = createProjectile(world, new PositionImpl(position.getX() + direction.getOffsetX() * 0.5, position.getY() - 0.5 + direction.getOffsetY() * 0.5, position.getZ() + direction.getOffsetZ() * 0.5), stack);
+        projectile.setVelocity(direction.getOffsetX(), direction.getOffsetY(), direction.getOffsetZ(), getForce(), getVariation());
+        world.spawnEntity((Entity) projectile);
+        stack.decrement(1);
         return stack;
     }
 
     @Override
-    protected IProjectile getProjectileEntity(World world, IPosition position, ItemStack stack) {
+    protected Projectile createProjectile(World world, Position position, ItemStack stack) {
         return new JackOProjectileEntity(world, position.getX(), position.getY(), position.getZ(), JackOAmmoHelper.getAmmoProperties(stack));
     }
 
     @Override
-    protected float getProjectileVelocity() {
+    protected float getForce() {
         return 1.3F;
     }
 }

@@ -1,31 +1,26 @@
 package jackolauncher.item;
 
-import mcp.MethodsReturnNonnullByDefault;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraft.nbt.ListNBT;
-import net.minecraft.nbt.NBTUtil;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtHelper;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-@MethodsReturnNonnullByDefault
-@ParametersAreNonnullByDefault
 public class JackOAmmoHelper {
 
-    public static CompoundNBT getAmmoProperties(ItemStack stack) {
-        return stack.getOrCreateChildTag("AmmoProperties");
+    public static CompoundTag getAmmoProperties(ItemStack stack) {
+        return stack.getOrCreateSubTag("AmmoProperties");
     }
 
     public static void setBlockState(ItemStack stack, BlockState blockState) {
-        getAmmoProperties(stack).put("BlockState", NBTUtil.writeBlockState(blockState));
+        getAmmoProperties(stack).put("BlockState", NbtHelper.fromBlockState(blockState));
     }
 
     public static BlockState getBlockState(ItemStack stack) {
-        CompoundNBT compound = getAmmoProperties(stack);
+        CompoundTag compound = getAmmoProperties(stack);
         if (compound.contains("BlockState")) {
-            return NBTUtil.readBlockState(compound.getCompound("BlockState"));
+            return NbtHelper.toBlockState(compound.getCompound("BlockState"));
         }
         return Blocks.JACK_O_LANTERN.getDefaultState();
     }
@@ -35,7 +30,7 @@ public class JackOAmmoHelper {
     }
 
     public static int getExplosionPower(ItemStack stack) {
-        CompoundNBT compound = getAmmoProperties(stack);
+        CompoundTag compound = getAmmoProperties(stack);
         if (compound.contains("ExplosionPower")) {
             return getAmmoProperties(stack).getByte("ExplosionPower");
         }
@@ -47,7 +42,7 @@ public class JackOAmmoHelper {
     }
 
     public static boolean getShouldDamageTerrain(ItemStack stack) {
-        CompoundNBT compound = getAmmoProperties(stack);
+        CompoundTag compound = getAmmoProperties(stack);
         return !compound.contains("ShouldDamageTerrain") || compound.getBoolean("ShouldDamageTerrain");
     }
 
@@ -108,28 +103,28 @@ public class JackOAmmoHelper {
     }
 
     public static void setArrows(ItemStack stack, ItemStack arrows) {
-        getAmmoProperties(stack).put("Arrows", arrows.write(new CompoundNBT()));
+        getAmmoProperties(stack).put("Arrows", arrows.toTag(new CompoundTag()));
     }
 
     public static ItemStack getArrows(ItemStack stack) {
-        return ItemStack.read(getAmmoProperties(stack).getCompound("Arrows"));
+        return ItemStack.fromTag(getAmmoProperties(stack).getCompound("Arrows"));
     }
 
     public static void setPotion(ItemStack stack, ItemStack potion) {
-        getAmmoProperties(stack).put("Potion", potion.write(new CompoundNBT()));
+        getAmmoProperties(stack).put("Potion", potion.toTag(new CompoundTag()));
     }
 
     public static ItemStack getPotion(ItemStack stack) {
-        return ItemStack.read(getAmmoProperties(stack).getCompound("Potion"));
+        return ItemStack.fromTag(getAmmoProperties(stack).getCompound("Potion"));
     }
 
     public static void setFireworks(ItemStack stack, ItemStack fireworksStack) {
         if (!fireworksStack.hasTag()) {
-            CompoundNBT fireworksCompound = new CompoundNBT();
+            CompoundTag fireworksCompound = new CompoundTag();
             fireworksCompound.putByte("Flight", (byte) 2);
             getAmmoProperties(stack).put("Fireworks", fireworksCompound);
         } else {
-            getAmmoProperties(stack).put("Fireworks", fireworksStack.getOrCreateChildTag("Fireworks"));
+            getAmmoProperties(stack).put("Fireworks", fireworksStack.getOrCreateSubTag("Fireworks"));
         }
     }
 
@@ -137,7 +132,7 @@ public class JackOAmmoHelper {
         return getAmmoProperties(stack).getCompound("Fireworks").getByte("Flight");
     }
 
-    public static ListNBT getFireworkExplosions(ItemStack stack) {
+    public static ListTag getFireworkExplosions(ItemStack stack) {
         return getAmmoProperties(stack).getCompound("Fireworks").getList("Explosions", 10);
     }
 }

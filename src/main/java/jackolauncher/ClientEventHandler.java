@@ -1,26 +1,23 @@
 package jackolauncher;
 
 import jackolauncher.item.JackOLauncherItem;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.entity.model.BipedModel;
-import net.minecraft.util.HandSide;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderLivingEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.entity.model.BipedEntityModel;
+import net.minecraft.util.Arm;
 
 @SuppressWarnings("unused")
-@Mod.EventBusSubscriber(value = Dist.CLIENT, modid = JackOLauncher.MODID)
 public class ClientEventHandler {
 
-    @SubscribeEvent
+/*    @Environment(EnvType.CLIENT)
     public static void setJackOLauncherArmPose(RenderLivingEvent.Pre event) {
-        boolean isHoldingOffHand = event.getEntity().getHeldItemOffhand().getItem() instanceof JackOLauncherItem;
-        boolean isHoldingMainHand = event.getEntity().getHeldItemMainhand().getItem() instanceof JackOLauncherItem;
-        if ((isHoldingMainHand && Minecraft.getInstance().gameSettings.mainHand == HandSide.RIGHT) || (isHoldingOffHand && Minecraft.getInstance().gameSettings.mainHand == HandSide.LEFT)) {
-            ((BipedModel) event.getRenderer().getEntityModel()).rightArmPose = BipedModel.ArmPose.CROSSBOW_HOLD;
-        } else if ((isHoldingMainHand && Minecraft.getInstance().gameSettings.mainHand == HandSide.LEFT) || (isHoldingOffHand && Minecraft.getInstance().gameSettings.mainHand == HandSide.RIGHT)) {
-            ((BipedModel) event.getRenderer().getEntityModel()).leftArmPose = BipedModel.ArmPose.CROSSBOW_HOLD;
+        boolean isHoldingOffHand = event.getEntity().getOffHandStack().getItem() instanceof JackOLauncherItem;
+        boolean isHoldingMainHand = event.getEntity().getMainHandStack().getItem() instanceof JackOLauncherItem;
+        if ((isHoldingMainHand && MinecraftClient.getInstance().options.mainArm == Arm.field_6183) || (isHoldingOffHand && MinecraftClient.getInstance().options.mainArm == Arm.field_6182)) {
+            ((BipedEntityModel) event.getRenderer().getModel()).rightArmPose = BipedEntityModel.ArmPose.field_3408;
+        } else if ((isHoldingMainHand && MinecraftClient.getInstance().options.mainArm == Arm.field_6182) || (isHoldingOffHand && MinecraftClient.getInstance().options.mainArm == Arm.field_6183)) {
+            ((BipedEntityModel) event.getRenderer().getModel()).leftArmPose = BipedEntityModel.ArmPose.field_3408;
         }
-    }
+    }*/
 }
